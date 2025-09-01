@@ -1,16 +1,16 @@
 const { GoogleSpreadsheet } = require("google-spreadsheet");
 
 const fetchPropertySheetData = async (req, res) => {
-  const value = req.query.sheetId || "1shI8qMMPkmKN9kI03tOpgu5lf-UCi1HvU9rRNZ4jd2A"; // Default sheetId
-  const [spreadsheetId] = value.split(",");
+  const value =
+    req.query.sheetId ; // Default
+     console.log("value", value)
+  // Expecting "spreadsheetId,MonthYear"
+  const [spreadsheetId, currentMonth] = value.split(",");
 
-  const sheetTitle = new Date().toLocaleString("en-US", {
-    month: "short",
-    year: "numeric",
-  }).replace(" ", "");
-
-  if (!spreadsheetId) {
-    return res.status(400).json({ success: false, message: "Invalid input" });
+  if (!spreadsheetId || !currentMonth) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid input. Pass spreadsheetId,MonthYear" });
   }
 
   try {
@@ -24,40 +24,39 @@ const fetchPropertySheetData = async (req, res) => {
 
     // Load the document information
     await doc.loadInfo();
+
+    // ✅ Use month from query, not system date
+    const sheetTitle = currentMonth; // e.g. "Aug2025"
     const sheet = doc.sheetsByTitle[sheetTitle];
+
     if (!sheet) {
-      return res.status(404).json({ success: false, message: "Sheet not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: `Sheet "${sheetTitle}" not found` });
     }
 
-    // Load the rows (no row count limitation here)
     const rows = await sheet.getRows();
 
     const result = [];
 
-    // Iterate over all rows and extract data, skipping empty rows
     for (const row of rows) {
+      const CurDueAmt = row["CurDueAmt"] || "";
+      const DADue = row["DADue"]?.toString().trim() || "";
+      const FullName = row["FullName"]?.toString().trim() || "";
+      const PreDueAmt = row["PreDueAmt"]?.toString().trim() || "";
 
-      const CurDueAmt = row['CurDueAmt'] || '';
-      const DADue = row['DADue']?.toString().trim() || '';
-      const FullName = row['FullName']?.toString().trim() || '';
-      const PreDueAmt = row['PreDueAmt']?.toString().trim() || '';
-      const ToRcableAmt = row['ToRcableAmt']?.toString().trim() || '';
-
-      // Check if the relevant columns have non-empty values
-      if ( FullName || CurDueAmt || DADue || PreDueAmt || ToRcableAmt ) {
+      if (FullName || CurDueAmt || DADue || PreDueAmt || ToRcableAmt) {
         result.push({
-          CurDueAmt: CurDueAmt,
-          DADue: DADue,
-          FullName: FullName,
-          PreDueAmt: PreDueAmt,
-          ToRcableAmt: ToRcableAmt
+          CurDueAmt,
+          DADue,
+          FullName,
+          PreDueAmt,
+          ToRcableAmt,
         });
       }
     }
 
-    // Return the fetched data
     return res.json({ success: true, total: result.length, data: result });
-
   } catch (err) {
     console.error("Error:", err.message);
     return res.status(500).json({ success: false, message: "Fetch failed" });
