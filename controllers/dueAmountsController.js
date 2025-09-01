@@ -45,13 +45,12 @@ const fetchPropertySheetData = async (req, res) => {
       const FullName = row["FullName"]?.toString().trim() || "";
       const PreDueAmt = row["PreDueAmt"]?.toString().trim() || "";
 
-      if (FullName || CurDueAmt || DADue || PreDueAmt || ToRcableAmt) {
+      if (FullName || CurDueAmt || DADue || PreDueAmt) {
         result.push({
           CurDueAmt,
           DADue,
           FullName,
           PreDueAmt,
-          ToRcableAmt,
         });
       }
     }
